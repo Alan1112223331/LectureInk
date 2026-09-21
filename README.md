@@ -10,6 +10,18 @@ Native Windows lecture translation with direct audio understanding and a continu
 
 Windows 10（1903 或更新版本）／Windows 11，64 位。最终用户不需要安装 Python 或其他依赖，需要联网并填写自己的硅基流动 API Key。EXE 未做代码签名。
 
+## 界面预览
+
+使用示例文稿展示实际桌面界面，图片不含真实课堂内容、密钥或个人设备名称。点击图片可查看大图。
+
+**双语连续文稿**：原文与译文按句配对，前面的内容持续保留。
+
+![双语连续文稿与课程主题、术语设置](docs/screenshots/bilingual.png)
+
+| 实时预览：末句等待后文校对 | 纯中文模式：支持麦克风与字号调整 |
+| --- | --- |
+| ![稳定文稿下方显示待校对的实时预览](docs/screenshots/live-preview.png) | ![麦克风输入与放大字号的纯中文文稿](docs/screenshots/chinese.png) |
+
 ## 功能
 
 - 系统声音或麦克风输入，可选择具体设备。
