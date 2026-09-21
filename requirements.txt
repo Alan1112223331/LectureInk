@@ -1,0 +1,7 @@
+PySide6-Essentials==6.11.2
+pyaudiowpatch==0.2.12.8
+numpy==2.5.3
+requests==2.34.2
+pyinstaller==6.22.3
+pytest==9.1.1
+onnxruntime==1.30.0

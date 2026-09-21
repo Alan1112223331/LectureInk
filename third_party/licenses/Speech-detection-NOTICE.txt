@@ -1,0 +1,4 @@
+Speech activity detection uses the MIT-licensed Silero VAD ONNX model with ONNX Runtime (MIT). No local ASR is used.
+Model source: https://github.com/snakers4/silero-vad
+Exact revision and SHA-256: silero-source.json
+Runtime source: https://github.com/microsoft/onnxruntime

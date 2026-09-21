@@ -1,0 +1,32 @@
+# Local secrets and settings
+apikey.txt
+*.key
+.env*
+settings.json
+session.json
+sessions/
+*.pem
+*.pfx
+
+# Development and release output
+.venv/
+work/
+dist/
+build/
+release/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.exe
+*.zip
+*.log
+
+# Recordings, transcripts and private verification output
+*.pcm
+*.wav
+!tests/assets/speech.wav
+测试记录.md
+*测试文稿*
+*测试数据*
+*测试报告*
+*导出验证*

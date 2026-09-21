@@ -1,0 +1,8 @@
+LectureInk uses unmodified Python, PySide6 / Qt, Shiboken6, PyAudioWPatch / PortAudio, NumPy, requests, urllib3, certifi, charset-normalizer and idna.
+
+PySide6 / Qt are used under LGPLv3; corresponding sources and build instructions:
+https://code.qt.io/cgit/pyside/pyside-setup.git/
+https://code.qt.io/cgit/qt/qtbase.git/
+https://download.qt.io/official_releases/QtForPython/pyside6/
+
+Application source is included in source.zip so that the application can be rebuilt with modified compatible libraries. Other package sources: https://pypi.org/ (versions in requirements.txt).
