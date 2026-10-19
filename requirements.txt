@@ -1,7 +1,10 @@
-PySide6-Essentials==6.11.2
-pyaudiowpatch==0.2.12.8
+PySide6_Essentials==6.11.2
+PyAudioWPatch==0.2.12.8
 numpy==2.5.3
 requests==2.34.2
-pyinstaller==6.22.3
+websocket-client==1.9.2
+moonshine-voice==0.1.5
+
+# development and packaging
 pytest==9.1.1
-onnxruntime==1.30.0
+pyinstaller==6.22.3

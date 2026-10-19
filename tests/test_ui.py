@@ -1,84 +1,75 @@
-import os
-os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 import argparse
-import sys
-from pathlib import Path
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
+import pytest
 from PySide6.QtWidgets import QApplication
-from PySide6.QtWidgets import QScrollArea
-from PySide6.QtGui import QTextCursor
-from app import MainWindow,STYLE
-from core import Settings
-
-def test_modes_continuous_manuscript_and_selection(monkeypatch):
-    app=QApplication.instance() or QApplication([])
-    app.setStyle('Fusion');app.setStyleSheet(STYLE)
-    args=argparse.Namespace(key_file=None,topic=None,open_session=None,auto_start=False,stop_after=None,quit_after=None,screenshot=None,session_dir=None,report=None)
-    window=MainWindow(args)
-    window.resize(960,700);window.show();app.processEvents()
-    sidebar=window.findChild(QScrollArea)
-    assert sidebar.widget().width()<=sidebar.viewport().width()
-    window.on_entries([{'source':f'The coefficient is {i}.','zh':f'系数是 {i}。'} for i in range(40)])
-    window.set_mode(True)
-    assert 'The coefficient is 0.' in window.document.toPlainText() and '系数是 39。' in window.document.toPlainText()
-    window.set_mode(False)
-    assert 'The coefficient' not in window.document.toPlainText() and '系数是 0。' in window.document.toPlainText()
-    cursor=window.document.textCursor();cursor.movePosition(QTextCursor.MoveOperation.Start)
-    cursor.movePosition(QTextCursor.MoveOperation.NextCharacter,QTextCursor.MoveMode.KeepAnchor,5);window.document.setTextCursor(cursor)
-    selected=window.document.textCursor().selectedText()
-    window.on_entries(window.entries+[{'source':'One more.','zh':'再来一句。'}])
-    assert window.document.textCursor().selectedText()==selected and window.deferred
-    # Avoid modifying live user settings from this isolated UI test.
-    monkeypatch.setattr('app.save_settings',lambda *args:None)
-    window.close()
 
 
-def test_source_switch_remembers_each_device_and_controls_fit_small_window(monkeypatch):
-    app=QApplication.instance() or QApplication([])
-    app.setStyle('Fusion');app.setStyleSheet(STYLE)
-    monkeypatch.setattr('app.load_settings',lambda:Settings())
-    monkeypatch.setattr('app.save_settings',lambda *args:None)
-    def devices(kind):
-        suffix=' [Loopback]' if kind=='system' else ''
-        return [{'index':i,'name':kind+str(i)+suffix,'kind':kind,'rate':48000,'channels':2} for i in (0,1)]
-    monkeypatch.setattr('app.list_devices',devices)
-    args=argparse.Namespace(key_file=None,topic=None,open_session=None,auto_start=False,stop_after=None,
-                            quit_after=None,screenshot=None,session_dir=None,report=None)
-    window=MainWindow(args);window.resize(960,700);window.show();app.processEvents()
-    window.devices.setCurrentIndex(1)
-    window.source_kind.setCurrentIndex(1)
-    assert window.devices.currentData()['kind']=='microphone' and '麦克风' in window.device_note.text()
-    window.devices.setCurrentIndex(1)
-    window.source_kind.setCurrentIndex(0)
-    assert window.devices.currentData()['name']=='system1 [Loopback]'
-    assert '[Loopback]' not in window.devices.currentText()
-    window.source_kind.setCurrentIndex(1)
-    assert window.devices.currentData()['name']=='microphone1'
-    assert window.collect_settings().microphone_name=='microphone1'
-    window.refresh_devices()
-    assert window.devices.currentData()['name']=='microphone1'
-    window.set_running(True)
-    assert not window.source_kind.isEnabled() and not window.devices.isEnabled()
-    window.set_running(False)
-    for button in (window.refresh_button,window.smaller,window.larger):
-        assert button.width()>=button.sizeHint().width(),button.text()
-        assert button.fontMetrics().horizontalAdvance(button.text())+18<=button.width()
-    sidebar=window.findChild(QScrollArea)
-    assert sidebar.widget().width()<=sidebar.viewport().width()
-    for button in (window.start_button,window.stop_button):
-        assert button.visibleRegion().boundingRect()==button.rect()
-    assert '字号' in window.smaller.text() and '字号' in window.larger.text()
-    previous=window.settings.font_size;window.larger.click()
-    assert window.settings.font_size==previous+1 and window.font_label.text()==str(previous+1)
-    window.change_font(100);assert not window.larger.isEnabled()
-    window.change_font(-100);assert not window.smaller.isEnabled()
-    window.on_entries([{'source':'Saved sentence.','zh':'已保存的句子。'}])
-    saved=window.document.toPlainText()
-    window.set_running(True);app.processEvents();height=window.document.height()
-    window.on_preview([{'source':'Draft sentence.','zh':'尚待校对的预览。'}]);app.processEvents()
-    assert window.document.toPlainText()==saved and '预览' in window.preview_document.toPlainText()
-    assert window.document.height()==height
-    window.on_preview([]);app.processEvents()
-    assert window.document.height()==height and window.document.toPlainText()==saved
-    window.set_running(False)
-    window.close()
+@pytest.fixture(scope='module')
+def app():
+    return QApplication.instance() or QApplication([])
+
+
+@pytest.fixture
+def window(app, tmp_path):
+    from app import MainWindow
+    args = argparse.Namespace(mode='local', audio_file='x.wav', auto_start=False, stop_after=None, quit_after=None,
+                              overlay=False, open=None, report=None, screenshot=None, shot_at=None,
+                              session_dir=str(tmp_path / 'sessions'), settings_file=str(tmp_path / 'settings.json'))
+    w = MainWindow(args)
+    yield w
+    w.overlay.close()
+    w.close()
+
+
+def feed(window, updates):
+    for u in updates:
+        window.transcript.apply(u)
+    window.render()
+
+
+def test_panes_render_paragraphs_and_live_text(window):
+    feed(window, [{'id': 'a', 'src': 'One.', 'tgt': '一。', 'start': 0, 'end': 1},
+                  {'id': 'b', 'src': 'Two', 'src_live': ' three', 'tgt_live': '二', 'start': 1.2, 'end': 2},
+                  {'id': 'c', 'src': 'New paragraph.', 'start': 6, 'end': 7}])
+    src = window.src_pane.view.document()
+    assert src.blockCount() == 2
+    assert src.firstBlock().text() == 'One. Two three'
+    assert window.tgt_pane.view.document().firstBlock().text() == '一。二'
+    # Live text is rewritten in place when it becomes final.
+    feed(window, [{'id': 'b', 'src': 'Two three.', 'src_live': ''}])
+    assert src.firstBlock().text() == 'One. Two three.'
+    assert src.blockCount() == 2
+    assert '2 段' in window.count_label.text()
+
+
+def test_view_modes_hide_panes(window):
+    window.set_view('target')
+    assert window.src_pane.isHidden() and not window.tgt_pane.isHidden()
+    window.set_view('both')
+    assert not window.src_pane.isHidden()
+
+
+def test_overlay_shows_recent_text(window):
+    window.set_overlay(True)
+    feed(window, [{'id': 'a', 'src': 'Hello.', 'tgt': '你好。', 'start': 0, 'end': 1}])
+    assert window.overlay.tgt_runs == [('你好。', False)]
+    assert not window.overlay.grab().isNull()
+    height = window.overlay.height()
+    window.overlay.change_font(4)
+    assert window.overlay.height() > height
+    window.set_overlay(False)
+    assert not window.overlay.isVisible()
+
+
+def test_settings_persist(window, tmp_path):
+    from settings import load_settings
+    window.change_font(2)
+    assert load_settings(tmp_path / 'settings.json').font_size == window.settings.font_size
+
+
+def test_open_saved_transcript(window, tmp_path):
+    from transcript import Transcript
+    t = Transcript()
+    t.apply({'id': 'a', 'src': 'Saved.', 'tgt': '已保存。', 'start': 0, 'end': 1})
+    t.save(tmp_path / 'transcript.json')
+    window.open_transcript(str(tmp_path / 'transcript.json'))
+    assert window.tgt_pane.view.document().firstBlock().text() == '已保存。'

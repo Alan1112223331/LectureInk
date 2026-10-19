@@ -3,7 +3,7 @@ apikey.txt
 *.key
 .env*
 settings.json
-session.json
+transcript.json
 sessions/
 *.pem
 *.pfx
@@ -25,6 +25,7 @@ __pycache__/
 *.pcm
 *.wav
 !tests/assets/speech.wav
+!tests/assets/lecture.wav
 测试记录.md
 *测试文稿*
 *测试数据*

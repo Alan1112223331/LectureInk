@@ -1,19 +1,33 @@
 # -*- mode: python ; coding: utf-8 -*-
+# Single-file Windows build. The Moonshine model is not bundled: it is downloaded on first use.
 from pathlib import Path
-from PyInstaller.utils.hooks import collect_all
+import moonshine_voice
 
-datas, binaries, hiddenimports = collect_all('pyaudiowpatch')
-datas += [(str(Path('src/assets')/name),'assets') for name in ('silero_vad.onnx','Silero-LICENSE.txt','silero-source.json')]
-a = Analysis(['src/app.py'], pathex=[], binaries=binaries, datas=datas,
-    hiddenimports=hiddenimports, hookspath=[], hooksconfig={}, runtime_hooks=[],
-    excludes=[], noarchive=False, optimize=0)
-# Qt uses Windows' ICU ABI with unsuffixed symbols. A developer PATH containing
-# Git's ICU can make PyInstaller bundle an incompatible icuuc.dll (e.g. *_78).
-# Windows 10 1903+ / Windows 11 provide the required ICU API as an OS component.
-# Do not ship or shadow that system DLL with another application's copy.
-a.binaries = [item for item in a.binaries
-    if not Path(item[0]).name.lower().startswith(('icuuc', 'icudt', 'icuin'))]
+moonshine_dir = Path(moonshine_voice.__file__).parent
+
+a = Analysis(
+    ['src/app.py'],
+    pathex=['src'],
+    binaries=[(str(moonshine_dir / 'moonshine.dll'), 'moonshine_voice'),
+              (str(moonshine_dir / 'onnxruntime.dll'), 'moonshine_voice')],
+    datas=[],
+    hiddenimports=['moonshine_voice.transcriber', 'moonshine_voice.download', 'websocket'],
+    excludes=['moonshine_voice.tts', 'moonshine_voice.lora', 'moonshine_voice.agent_flow', 'moonshine_voice.mic_transcriber',
+              'sounddevice', 'torch', 'transformers', 'scipy', 'tkinter', 'onnxruntime', 'PySide6.QtNetwork',
+              'PySide6.QtQml', 'PySide6.QtQuick', 'PySide6.QtOpenGL', 'PySide6.QtSvg', 'PySide6.QtPdf'],
+    noarchive=False,
+)
+# Windows ships a compatible ICU; Qt's optional ICU DLLs only add size.
+a.binaries = [b for b in a.binaries if not Path(b[0]).name.lower().startswith(('icudt', 'icuin', 'icuuc'))]
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name='LectureInk',
-    debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
-    runtime_tmpdir=None, console=False, disable_windowed_traceback=False)
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.datas,
+    [],
+    name='LectureInk',
+    console=False,
+    upx=False,
+    icon=None,
+)
